@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RR Time</title>
+<meta name="theme-color" content="#1d6f7a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+:root{
+  --navy:#1d6f7a; --navy-d:#155763; --green:#12734a; --green-d:#0d5a39;
+  --red:#a32020; --red-d:#821919;
+  --bg:#f4f5f7; --card:#ffffff; --line:#d9dde3;
+  --ink:#16202e; --dim:#5d6b7d;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  background:var(--bg); color:var(--ink);
+  font-size:17px; line-height:1.35;
+  padding-bottom:calc(78px + env(safe-area-inset-bottom));
+  -webkit-user-select:none; user-select:none;
+}
+header{
+  background:var(--navy); color:#fff;
+  padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
+  display:flex; align-items:baseline; justify-content:space-between; gap:8px;
+}
+header.on{background:var(--green)}
+header h1{font-size:16px;margin:0;font-weight:700;letter-spacing:.06em}
+header .who{font-size:13px;opacity:.85}
+main{padding:14px 14px 24px;max-width:620px;margin:0 auto}
+section{display:none}
+section.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.status{text-align:center;padding:20px 14px}
+.status .lbl{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);font-weight:700}
+.status .big{font-size:46px;font-weight:800;letter-spacing:-.02em;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.status .sub{font-size:15px;color:var(--dim)}
+.status.on .big{color:var(--green)}
+button{font-family:inherit;font-size:17px;border:none;border-radius:12px;padding:14px;cursor:pointer;color:#fff;background:var(--navy);font-weight:600}
+button:active{transform:translateY(1px)}
+.punch{width:100%;font-size:26px;font-weight:800;padding:26px 14px;letter-spacing:.04em;border-radius:14px;box-shadow:0 2px 0 var(--navy-d)}
+.punch.go{background:var(--green);box-shadow:0 3px 0 var(--green-d)}
+.punch.stop{background:var(--red);box-shadow:0 3px 0 var(--red-d)}
+.ghost{background:transparent;color:var(--navy);border:1.5px solid var(--line);font-weight:600}
+.row{display:flex;gap:8px}
+.row>*{flex:1}
+label{display:block;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim);font-weight:700;margin:12px 0 5px}
+input,select,textarea{
+  width:100%;font-family:inherit;font-size:17px;padding:12px;border:1.5px solid var(--line);
+  border-radius:10px;background:#fff;color:var(--ink);-webkit-user-select:text;user-select:text
+}
+textarea{resize:vertical;min-height:64px}
+nav{
+  position:fixed;left:0;right:0;bottom:0;display:flex;background:#fff;
+  border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5
+}
+nav button{flex:1;background:none;color:var(--dim);border-radius:0;font-size:12px;font-weight:700;
+  letter-spacing:.06em;padding:12px 4px 14px;text-transform:uppercase}
+nav button.active{color:var(--navy);box-shadow:inset 0 -3px 0 var(--navy)}
+.period{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.period .pbtn{background:#fff;border:1.5px solid var(--line);color:var(--navy);font-size:20px;padding:8px 14px;border-radius:10px;flex:0 0 auto;font-weight:700}
+.period .pinfo{flex:1;text-align:center}
+.period .pinfo b{display:block;font-size:15px}
+.period .pinfo span{font-size:12.5px;color:var(--dim)}
+.total{background:var(--navy);color:#fff;border-radius:12px;padding:14px;text-align:center;margin-bottom:12px}
+.total .n{font-size:38px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+.total .t{font-size:12px;letter-spacing:.1em;text-transform:uppercase;opacity:.85;font-weight:700}
+.day{margin-bottom:10px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.day h3{margin:0;padding:9px 12px;background:#eef1f5;font-size:13.5px;display:flex;justify-content:space-between;
+  letter-spacing:.03em;border-bottom:1px solid var(--line)}
+.ent{padding:11px 12px;border-bottom:1px solid #eef0f3;display:flex;gap:10px;align-items:flex-start}
+.ent:last-child{border-bottom:none}
+.ent .tm{flex:0 0 auto;font-variant-numeric:tabular-nums;font-size:14px;color:var(--dim);width:132px}
+.ent .nt{flex:1;font-size:15px;word-break:break-word}
+.ent .hr{flex:0 0 auto;font-weight:700;font-variant-numeric:tabular-nums;font-size:15px}
+.ent.live{background:#eaf7f0}
+.muted{color:var(--dim);font-size:14px;text-align:center;padding:22px 10px}
+.modal{position:fixed;inset:0;background:rgba(12,20,32,.55);display:none;align-items:flex-end;z-index:20}
+.modal.open{display:flex}
+.sheet{background:#fff;width:100%;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom));max-width:620px;margin:0 auto}
+.sheet h2{margin:0 0 4px;font-size:19px}
+.hint{font-size:13px;color:var(--dim);margin-top:6px}
+.warn{background:#fff5e6;border:1px solid #f0c887;color:#6b4a10;border-radius:10px;padding:11px;font-size:14px;margin-bottom:12px}
+.err{background:#fdecec;border:1px solid #e8a5a5;color:#7d1f1f}
+.ok{background:#e9f6ee;border:1px solid #a8d6bd;color:#14603f}
+.sm{font-size:14px;padding:11px}
+.mt{margin-top:12px}
+</style>
+</head>
+<body>
+
+<header id="hdr">
+  <h1>RR TIME</h1>
+  <div class="who" id="whoLbl">&nbsp;</div>
+</header>
+
+<main>
+
+<!-- ============ CLOCK ============ -->
+<section id="s-clock" class="active">
+  <div id="storeWarn"></div>
+
+  <div class="card status" id="statCard">
+    <div class="lbl" id="statLbl">Off the clock</div>
+    <div class="big" id="statBig">--</div>
+    <div class="sub" id="statSub">&nbsp;</div>
+  </div>
+
+  <button class="punch go" id="punchBtn">START</button>
+
+  <div class="card mt" id="liveNoteWrap" style="display:none">
+    <label for="liveNote">What are you working on?</label>
+    <input id="liveNote" type="text" placeholder="e.g. Register, restock, open the shop" autocomplete="off">
+    <div class="hint">Saved as you type. You can change it when you stop.</div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <strong id="todayLbl">Today</strong>
+      <span style="font-variant-numeric:tabular-nums;font-weight:700" id="todayTot">0.00 hrs</span>
+    </div>
+    <div id="todayList"></div>
+  </div>
+
+  <button class="ghost sm" id="addBtn2" style="width:100%">+ Add a missed entry</button>
+</section>
+
+<!-- ============ TIMESHEET ============ -->
+<section id="s-sheet">
+  <div class="period">
+    <button class="pbtn" id="prevP">&#8249;</button>
+    <div class="pinfo"><b id="pRange">--</b><span id="pPay">--</span></div>
+    <button class="pbtn" id="nextP">&#8250;</button>
+  </div>
+
+  <div class="total"><div class="n" id="pTotal">0.00</div><div class="t">Hours this pay period</div></div>
+
+  <div id="sentNote"></div>
+  <div id="sheetList"></div>
+
+  <button class="ghost sm mt" id="addBtn" style="width:100%">+ Add a missed entry</button>
+</section>
+
+<!-- ============ SEND ============ -->
+<section id="s-send">
+  <div class="card">
+    <strong id="sendRange">--</strong>
+    <div class="hint" id="sendMeta">--</div>
+    <button id="textBtn" class="mt" style="width:100%">Text this timesheet</button>
+    <button id="copyBtn" class="ghost sm mt" style="width:100%">Copy to clipboard instead</button>
+    <div class="hint">If your messaging app doesn't open, tap <b>Copy</b>, then paste it into a new text to Jen.</div>
+    <div id="sendMsg"></div>
+  </div>
+  <div class="card">
+    <label>Preview</label>
+    <textarea id="preview" readonly style="min-height:280px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px"></textarea>
+  </div>
+</section>
+
+<!-- ============ SETTINGS ============ -->
+<section id="s-set">
+  <div class="card">
+    <label for="setWorker">Employee name</label>
+    <input id="setWorker" type="text" autocomplete="off">
+
+    <label for="setPhone">Text timesheets to (phone)</label>
+    <input id="setPhone" type="tel" autocomplete="off" inputmode="tel" placeholder="e.g. (502) 555-0137">
+    <div class="hint" style="margin-top:4px">Stored only on this phone — never in the app's code.</div>
+
+    <div class="hint">Pay periods: the <b>1st&ndash;15th</b> (submitted on the 15th) and the <b>16th&ndash;end of the month</b> (submitted on the last day). Those two dates are when hours are collected.</div>
+
+    <button id="saveSet" class="mt" style="width:100%">Save settings</button>
+    <div id="setMsg"></div>
+  </div>
+
+  <div class="card">
+    <label>Backup</label>
+    <div class="hint" style="margin-top:0">Your entries live on this phone. Emailing each timesheet is the backup that matters, but you can also save a full copy.</div>
+    <button id="exportBtn" class="ghost sm mt" style="width:100%">Download all entries (.csv)</button>
+    <button id="jsonBtn" class="ghost sm mt" style="width:100%">Download full backup (.json)</button>
+  </div>
+
+  <div class="card">
+    <div class="hint" style="margin-top:0">RR Time &middot; v1.0 &middot; <span id="entCount"></span></div>
+  </div>
+</section>
+
+</main>
+
+<nav>
+  <button data-tab="clock" class="active">Clock</button>
+  <button data-tab="sheet">Timesheet</button>
+  <button data-tab="send">Send</button>
+  <button data-tab="set">Settings</button>
+</nav>
+
+<!-- ============ EDIT MODAL ============ -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <h2 id="mTitle">Edit entry</h2>
+    <div id="mWarn"></div>
+    <label for="mDate">Date (day the shift started)</label>
+    <input id="mDate" type="date">
+    <div class="row">
+      <div><label for="mStart">Start</label><input id="mStart" type="time"></div>
+      <div><label for="mStop">Stop</label><input id="mStop" type="time"></div>
+    </div>
+    <div class="hint" id="mSpan">&nbsp;</div>
+    <label for="mNote">Task</label>
+    <textarea id="mNote" placeholder="Brief note — what you worked on"></textarea>
+    <button id="mSave" class="mt" style="width:100%">Save</button>
+    <div class="row mt">
+      <button id="mCancel" class="ghost sm">Cancel</button>
+      <button id="mDelete" class="sm" style="background:var(--red)">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ---------------- storage ---------------- */
+var KEY = "rr_time_v1";
+var memOnly = false;
+function blank(){
+  return {version:1, settings:{worker:"Emma", phone:""},
+          running:null, entries:[], sent:{}};
+}
+function load(){
+  try{
+    var raw = localStorage.getItem(KEY);
+    localStorage.setItem(KEY+"_probe","1"); localStorage.removeItem(KEY+"_probe");
+    if(!raw) return blank();
+    var o = JSON.parse(raw);
+    var b = blank();
+    o.settings = Object.assign(b.settings, o.settings||{});
+    o.entries = o.entries||[]; o.sent = o.sent||{};
+    if(o.running === undefined) o.running = null;
+    return o;
+  }catch(e){ memOnly = true; return blank(); }
+}
+function save(){
+  if(memOnly) return;
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch(e){ memOnly = true; renderStoreWarn(); }
+}
+var S = load();
+
+/* ---------------- helpers ---------------- */
+function uid(){
+  try{ if(crypto && crypto.randomUUID) return crypto.randomUUID(); }catch(e){}
+  return Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+}
+var MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+var DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+function pad(n){return n<10?"0"+n:""+n;}
+function d2(s){return new Date(s);}
+function ymd(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}
+function hm(d){return pad(d.getHours())+":"+pad(d.getMinutes());}
+function clock(d){
+  var h=d.getHours(), m=d.getMinutes(), ap=h<12?"AM":"PM";
+  h=h%12; if(h===0)h=12;
+  return h+":"+pad(m)+" "+ap;
+}
+function dayLbl(d){ return DOW[d.getDay()]+" "+MON[d.getMonth()]+" "+d.getDate(); }
+function shortD(d){ return MON[d.getMonth()]+" "+d.getDate(); }
+function longD(d){ return MON[d.getMonth()]+" "+d.getDate()+", "+d.getFullYear(); }
+function mins(a,b){ return Math.max(0, Math.round((b-a)/60000)); }
+function hrs(m){ return (m/60).toFixed(2); }
+function hm2(m){ return Math.floor(m/60)+"h "+pad(m%60)+"m"; }
+function startOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0,0); }
+function endOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23,59,59,999); }
+function lastDayOfMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
+function addDays(d,n){ var x=new Date(d.getTime()); x.setDate(x.getDate()+n); return x; }
+
+/* ---------------- pay periods (Retail Ready) ----------------
+   Two semi-monthly periods, split cleanly at the 15th and the last day:
+     1st – 15th      -> collected / paid on the 15th
+     16th – last day -> collected / paid on the last day of the month
+------------------------------------------------------------- */
+function periodFor(date){
+  var y = date.getFullYear(), m = date.getMonth(), d = date.getDate();
+  var s, e, pay;
+  if(d <= 15){
+    s = new Date(y, m, 1);
+    e = endOfDay(new Date(y, m, 15));
+    pay = new Date(y, m, 15);
+  } else {
+    var ld = lastDayOfMonth(y, m);
+    s = new Date(y, m, 16);
+    e = endOfDay(new Date(y, m, ld));
+    pay = new Date(y, m, ld);
+  }
+  return {start:s, end:e, pay:pay, key: ymd(s)};
+}
+function shiftPeriod(p, dir){
+  return periodFor(dir < 0 ? addDays(p.start,-1) : addDays(p.end, 1));
+}
+function periodLabel(p){
+  var a = p.start, b = p.end;
+  var sameYear = a.getFullYear() === b.getFullYear();
+  return shortD(a) + " – " + (sameYear ? shortD(b) : longD(b)) + ", " + b.getFullYear();
+}
+
+/* ---------------- entries ---------------- */
+function sorted(){
+  return S.entries.slice().sort(function(a,b){ return d2(a.start) - d2(b.start); });
+}
+function inRange(e, p){
+  var t = d2(e.start);
+  return t >= p.start && t <= p.end;
+}
+function entMins(e){ return mins(d2(e.start), d2(e.stop)); }
+
+function groupByDay(list){
+  var map = {}, order = [];
+  list.forEach(function(e){
+    var k = ymd(d2(e.start));
+    if(!map[k]){ map[k]=[]; order.push(k); }
+    map[k].push(e);
+  });
+  return order.map(function(k){ return {key:k, date:d2(map[k][0].start), items:map[k]}; });
+}
+
+/* ---------------- rendering ---------------- */
+var tick = null;
+
+function renderStoreWarn(){
+  var el = document.getElementById("storeWarn");
+  el.innerHTML = memOnly
+    ? '<div class="warn err"><b>Storage is blocked.</b> Entries will be lost when this page closes. Open the app from its home-screen icon (not a private/incognito tab) and try again.</div>'
+    : "";
+}
+
+function renderClock(){
+  var hdr = document.getElementById("hdr");
+  var card = document.getElementById("statCard");
+  var btn = document.getElementById("punchBtn");
+  var lbl = document.getElementById("statLbl");
+  var big = document.getElementById("statBig");
+  var sub = document.getElementById("statSub");
+  var nw  = document.getElementById("liveNoteWrap");
+  document.getElementById("whoLbl").textContent = S.settings.worker || "";
+
+  if(S.running){
+    var st = d2(S.running.start);
+    var m = mins(st, new Date());
+    hdr.classList.add("on"); card.classList.add("on");
+    lbl.textContent = "On the clock";
+    big.textContent = hm2(m);
+    sub.textContent = "Started " + clock(st) + (ymd(st)!==ymd(new Date()) ? " on " + dayLbl(st) : "");
+    btn.textContent = "STOP";
+    btn.className = "punch stop";
+    nw.style.display = "";
+    if(document.activeElement !== document.getElementById("liveNote"))
+      document.getElementById("liveNote").value = S.running.note || "";
+    if(m > 16*60){
+      lbl.innerHTML = 'On the clock &mdash; <span style="color:#a32020">over 16 hours, did you forget to stop?</span>';
+    }
+  } else {
+    hdr.classList.remove("on"); card.classList.remove("on");
+    lbl.textContent = "Off the clock";
+    big.textContent = clock(new Date());
+    sub.textContent = dayLbl(new Date());
+    btn.textContent = "START";
+    btn.className = "punch go";
+    nw.style.display = "none";
+  }
+
+  // today
+  var today = startOfDay(new Date()), tend = endOfDay(new Date());
+  var list = sorted().filter(function(e){ var t=d2(e.start); return t>=today && t<=tend; });
+  var tot = list.reduce(function(a,e){ return a+entMins(e); },0);
+  if(S.running && d2(S.running.start) >= today) tot += mins(d2(S.running.start), new Date());
+  document.getElementById("todayLbl").textContent = dayLbl(new Date());
+  document.getElementById("todayTot").textContent = hrs(tot) + " hrs";
+  var html = list.map(entRow).join("");
+  if(S.running){
+    html += '<div class="ent live"><div class="tm">'+clock(d2(S.running.start))+' – now</div>'+
+            '<div class="nt">'+esc(S.running.note||"(running)")+'</div>'+
+            '<div class="hr">'+hrs(mins(d2(S.running.start), new Date()))+'</div></div>';
+  }
+  document.getElementById("todayList").innerHTML = html || '<div class="muted">No entries yet today.</div>';
+}
+
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+function entRow(e){
+  var a = d2(e.start), b = d2(e.stop);
+  var nextDay = ymd(a)!==ymd(b) ? " <span style=\"font-size:11px\">(+1d)</span>" : "";
+  return '<div class="ent" data-id="'+e.id+'">'+
+    '<div class="tm">'+clock(a)+' – '+clock(b)+nextDay+'</div>'+
+    '<div class="nt">'+(e.note?esc(e.note):'<i style="color:#96a1af">no task noted</i>')+'</div>'+
+    '<div class="hr">'+hrs(entMins(e))+'</div></div>';
+}
+
+var viewP = periodFor(new Date());
+
+function renderSheet(){
+  document.getElementById("pRange").textContent = periodLabel(viewP);
+  document.getElementById("pPay").textContent = "Pay date " + longD(viewP.pay);
+  var list = sorted().filter(function(e){ return inRange(e, viewP); });
+  var tot = list.reduce(function(a,e){ return a+entMins(e); },0);
+  document.getElementById("pTotal").textContent = hrs(tot);
+
+  var sent = S.sent[viewP.key];
+  document.getElementById("sentNote").innerHTML = sent
+    ? '<div class="warn ok">Emailed '+ esc(sent) +'</div>' : "";
+
+  var days = groupByDay(list);
+  document.getElementById("sheetList").innerHTML = days.length ? days.map(function(g){
+    var dm = g.items.reduce(function(a,e){ return a+entMins(e); },0);
+    return '<div class="day"><h3><span>'+dayLbl(g.date)+'</span><span>'+hrs(dm)+' hrs</span></h3>'+
+      g.items.map(entRow).join("")+'</div>';
+  }).join("") : '<div class="muted">Nothing recorded in this pay period.<br>Tap an entry any time to fix a time or a note.</div>';
+}
+
+/* ---------------- edit modal ---------------- */
+var editId = null;
+function openEdit(id){
+  editId = id;
+  var e = id ? S.entries.filter(function(x){return x.id===id;})[0] : null;
+  document.getElementById("mTitle").textContent = e ? "Edit entry" : "Add entry";
+  document.getElementById("mDelete").style.display = e ? "" : "none";
+  document.getElementById("mWarn").innerHTML = "";
+  var a = e ? d2(e.start) : new Date();
+  var b = e ? d2(e.stop)  : new Date();
+  if(!e){ a.setHours(8,0,0,0); b.setHours(16,0,0,0); }
+  document.getElementById("mDate").value  = ymd(a);
+  document.getElementById("mStart").value = hm(a);
+  document.getElementById("mStop").value  = hm(b);
+  document.getElementById("mNote").value  = e ? (e.note||"") : "";
+  updSpan();
+  document.getElementById("modal").classList.add("open");
+}
+function closeEdit(){ document.getElementById("modal").classList.remove("open"); editId=null; }
+function readEdit(){
+  var dv = document.getElementById("mDate").value;
+  var sv = document.getElementById("mStart").value;
+  var ev = document.getElementById("mStop").value;
+  if(!dv||!sv||!ev) return null;
+  var dp = dv.split("-"), sp = sv.split(":"), ep = ev.split(":");
+  var a = new Date(+dp[0], +dp[1]-1, +dp[2], +sp[0], +sp[1], 0, 0);
+  var b = new Date(+dp[0], +dp[1]-1, +dp[2], +ep[0], +ep[1], 0, 0);
+  if(b <= a) b = addDays(b, 1);            // shift crossed midnight
+  return {start:a, stop:b};
+}
+function updSpan(){
+  var r = readEdit();
+  var el = document.getElementById("mSpan");
+  if(!r){ el.textContent = " "; return; }
+  var m = mins(r.start, r.stop);
+  el.innerHTML = "<b>"+hrs(m)+" hrs</b> ("+hm2(m)+")" +
+    (ymd(r.start)!==ymd(r.stop) ? " &mdash; ends next morning" : "");
+}
+
+/* ---------------- report ---------------- */
+function buildReport(p){
+  var list = sorted().filter(function(e){ return inRange(e, p); });
+  var L = [];
+  L.push("RR TIME RECORD");
+  L.push(S.settings.worker || "");
+  L.push("Pay period: " + periodLabel(p));
+  L.push("Pay date: " + longD(p.pay));
+  L.push("");
+  var tot = 0;
+  groupByDay(list).forEach(function(g){
+    var dm = 0;
+    L.push(dayLbl(g.date) + ", " + g.date.getFullYear());
+    g.items.forEach(function(e){
+      var m = entMins(e); dm += m; tot += m;
+      var a = d2(e.start), b = d2(e.stop);
+      var span = clock(a) + " - " + clock(b) + (ymd(a)!==ymd(b) ? " (+1 day)" : "");
+      L.push("   " + span + "   " + hrs(m) + "   " + (e.note || "(no task noted)"));
+    });
+    L.push("   Day total: " + hrs(dm));
+    L.push("");
+  });
+  if(!list.length) L.push("(no entries)\n");
+  L.push("--------------------------------");
+  L.push("PERIOD TOTAL: " + hrs(tot) + " hours  (" + hm2(tot) + ")");
+  L.push("Entries: " + list.length);
+  L.push("Submitted " + longD(new Date()) + " at " + clock(new Date()));
+  return L.join("\n");
+}
+function reportSubject(p){
+  return "Time record - " + (S.settings.worker||"") + " - " + periodLabel(p);
+}
+function renderSend(){
+  document.getElementById("sendRange").textContent = periodLabel(viewP);
+  var list = sorted().filter(function(e){ return inRange(e, viewP); });
+  var tot = list.reduce(function(a,e){ return a+entMins(e); },0);
+  document.getElementById("sendMeta").textContent =
+    hrs(tot) + " hrs · " + list.length + " entries · to " + (S.settings.phone||"(no number set)");
+  document.getElementById("preview").value = buildReport(viewP);
+  document.getElementById("sendMsg").innerHTML = "";
+}
+
+function csvAll(){
+  var rows = [["Employee","Date","Start","Stop","Hours","Task","Pay period","Pay date"]];
+  sorted().forEach(function(e){
+    var a=d2(e.start), b=d2(e.stop), p=periodFor(a);
+    rows.push([S.settings.worker||"", ymd(a), clock(a), clock(b), hrs(entMins(e)),
+               e.note||"", periodLabel(p), longD(p.pay)]);
+  });
+  return rows.map(function(r){ return r.map(function(c){
+    c = String(c); return /[",\n]/.test(c) ? '"'+c.replace(/"/g,'""')+'"' : c; }).join(","); }).join("\r\n");
+}
+function download(name, text, type){
+  var b = new Blob([text], {type:type||"text/plain;charset=utf-8"});
+  var u = URL.createObjectURL(b), a = document.createElement("a");
+  a.href = u; a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(u); a.remove(); }, 1500);
+}
+
+/* ---------------- wiring ---------------- */
+function renderAll(){ renderClock(); renderSheet(); renderSend(); renderStoreWarn();
+  document.getElementById("entCount").textContent = S.entries.length + " entries stored"; }
+
+document.querySelectorAll("nav button").forEach(function(b){
+  b.onclick = function(){
+    document.querySelectorAll("nav button").forEach(function(x){ x.classList.remove("active"); });
+    document.querySelectorAll("section").forEach(function(x){ x.classList.remove("active"); });
+    b.classList.add("active");
+    document.getElementById("s-"+b.dataset.tab).classList.add("active");
+    if(b.dataset.tab==="send") renderSend();
+    if(b.dataset.tab==="sheet") renderSheet();
+    window.scrollTo(0,0);
+  };
+});
+
+document.getElementById("punchBtn").onclick = function(){
+  if(S.running){
+    var st = d2(S.running.start), now = new Date();
+    if(mins(st, now) < 1){
+      if(!confirm("That's less than a minute. Discard this punch?")) return;
+      S.running = null; save(); renderAll(); return;
+    }
+    S.entries.push({id:uid(), start:st.toISOString(), stop:now.toISOString(), note:(S.running.note||"").trim()});
+    var justAdded = S.entries[S.entries.length-1].id;
+    S.running = null; save(); renderAll();
+    openEdit(justAdded);                       // confirm/complete the task note
+    document.getElementById("mTitle").textContent = "Stopped — check the task note";
+    document.getElementById("mNote").focus();
+  } else {
+    S.running = {start:new Date().toISOString(), note:""};
+    save(); renderAll();
+    document.getElementById("liveNote").focus();
+  }
+};
+document.getElementById("liveNote").oninput = function(){
+  if(S.running){ S.running.note = this.value; save(); }
+};
+
+document.getElementById("prevP").onclick = function(){ viewP = shiftPeriod(viewP,-1); renderSheet(); renderSend(); };
+document.getElementById("nextP").onclick = function(){ viewP = shiftPeriod(viewP, 1); renderSheet(); renderSend(); };
+
+document.getElementById("addBtn").onclick  = function(){ openEdit(null); };
+document.getElementById("addBtn2").onclick = function(){ openEdit(null); };
+
+document.body.addEventListener("click", function(ev){
+  var row = ev.target.closest ? ev.target.closest(".ent[data-id]") : null;
+  if(row && !row.classList.contains("live")) openEdit(row.dataset.id);
+});
+
+["mDate","mStart","mStop"].forEach(function(id){
+  document.getElementById(id).addEventListener("change", updSpan);
+  document.getElementById(id).addEventListener("input", updSpan);
+});
+document.getElementById("mCancel").onclick = closeEdit;
+document.getElementById("modal").addEventListener("click", function(e){ if(e.target===this) closeEdit(); });
+document.getElementById("mSave").onclick = function(){
+  var r = readEdit();
+  if(!r){ document.getElementById("mWarn").innerHTML='<div class="warn err">Fill in the date, start and stop.</div>'; return; }
+  var note = document.getElementById("mNote").value.trim();
+  if(mins(r.start,r.stop) > 20*60 &&
+     !confirm("That's "+hrs(mins(r.start,r.stop))+" hours. Save it anyway?")) return;
+  if(editId){
+    S.entries.forEach(function(e){ if(e.id===editId){
+      e.start = r.start.toISOString(); e.stop = r.stop.toISOString(); e.note = note; } });
+  } else {
+    S.entries.push({id:uid(), start:r.start.toISOString(), stop:r.stop.toISOString(), note:note});
+  }
+  save(); closeEdit(); viewP = periodFor(r.start); renderAll();
+};
+document.getElementById("mDelete").onclick = function(){
+  if(!editId) return;
+  if(!confirm("Delete this entry?")) return;
+  S.entries = S.entries.filter(function(e){ return e.id!==editId; });
+  save(); closeEdit(); renderAll();
+};
+
+document.getElementById("textBtn").onclick = function(){
+  var num = (S.settings.phone||"").replace(/[^\d+]/g,"");
+  if(!num){
+    document.getElementById("sendMsg").innerHTML =
+      '<div class="warn err mt">Add a phone number in <b>Settings</b> first (it stays on this phone).</div>';
+    return;
+  }
+  var body = buildReport(viewP);
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent||"");
+  var url = "sms:"+num+(isIOS?"&":"?")+"body="+encodeURIComponent(body);
+  S.sent[viewP.key] = longD(new Date()) + " at " + clock(new Date());
+  save(); renderSheet();
+  document.getElementById("sendMsg").innerHTML =
+    '<div class="warn ok mt">Marked as sent. If your messaging app didn\'t open, use <b>Copy</b> above.</div>';
+  window.location.href = url;
+};
+document.getElementById("copyBtn").onclick = function(){
+  var t = buildReport(viewP), done = function(){
+    document.getElementById("sendMsg").innerHTML='<div class="warn ok mt">Copied. Paste it into a text to '+esc(S.settings.phone||"Jen")+'.</div>'; };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(done, fallback);
+  } else fallback();
+  function fallback(){
+    var ta = document.getElementById("preview");
+    ta.removeAttribute("readonly"); ta.select(); ta.setSelectionRange(0, 999999);
+    try{ document.execCommand("copy"); done(); }
+    catch(e){ document.getElementById("sendMsg").innerHTML='<div class="warn mt">Select the preview text below and copy it manually.</div>'; }
+    ta.setAttribute("readonly","readonly");
+  }
+};
+
+function loadSettings(){
+  document.getElementById("setWorker").value = S.settings.worker||"";
+  document.getElementById("setPhone").value  = S.settings.phone||"";
+}
+document.getElementById("saveSet").onclick = function(){
+  S.settings.worker = document.getElementById("setWorker").value.trim();
+  S.settings.phone  = document.getElementById("setPhone").value.trim();
+  save();
+  viewP = periodFor(new Date());
+  renderAll();
+  document.getElementById("setMsg").innerHTML = '<div class="warn ok mt">Saved.</div>';
+  setTimeout(function(){ document.getElementById("setMsg").innerHTML=""; }, 2500);
+};
+document.getElementById("exportBtn").onclick = function(){
+  download("rr-time-"+ymd(new Date())+".csv", csvAll(), "text/csv;charset=utf-8");
+};
+document.getElementById("jsonBtn").onclick = function(){
+  download("rr-time-backup-"+ymd(new Date())+".json", JSON.stringify(S,null,2), "application/json");
+};
+
+loadSettings();
+renderAll();
+tick = setInterval(function(){ if(document.getElementById("s-clock").classList.contains("active")) renderClock(); }, 1000);
+document.addEventListener("visibilitychange", function(){ if(!document.hidden){ viewP = periodFor(new Date()); renderAll(); } });
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+}
+window.__rr = {periodFor:periodFor, buildReport:buildReport, S:function(){return S;}};
+</script>
+</body>
+</html>
